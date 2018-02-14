@@ -17,12 +17,13 @@
 import React, { Component } from 'react';
 import Button from 'semantic-ui-react/dist/commonjs/elements/Button';
 import Form from 'semantic-ui-react/dist/commonjs/collections/Form';
-import IdentityIcon from '@parity/ui/lib/IdentityIcon';
 import { FormattedMessage } from 'react-intl';
+import IdentityIcon from '@parity/ui/lib/IdentityIcon';
+import { inHex } from '@parity/api/lib/format/input';
 import Input from '@parity/ui/lib/Form/Input';
 import { observer } from 'mobx-react';
-import pick from 'lodash/pick';
 import PropTypes from 'prop-types';
+import { Signer } from '@parity/shared/lib/util/signer';
 
 import styles from './ConfirmViaKey.css';
 
@@ -43,30 +44,58 @@ class ConfirmViaKey extends Component {
   state = {
     isSending: false,
     password: '',
-    passwordError: null,
     wallet: null,
-    walletError: null
+    error: null
   };
 
   handleChange = ({ target: { value } }) =>
     this.setState({
       password: value,
-      passwordError: null
+      error: null
     });
 
   handleConfirm = () => {
     const { api } = this.context;
     const { request, transaction } = this.props;
-    const { password } = this.state;
+    const { wallet, password } = this.state;
 
     this.setState({ isSending: true });
 
-    // Note that transaction can be null, in this case confirmRequest will
-    // sign the message that was initially in the request
-    return api.signer
-      .confirmRequest(request.id, pick(transaction, ['condition', 'gas', 'gasPrice,']), password)
+    // Only support transaction for now
+    // TODO should support eth_sign and parity_decryptMessage
+    if (!transaction) {
+      this.setState({ error: 'Signing and Decrypting with JSON file is not supported for now.' });
+      console.error('Signing and Decrypting with JSON file is not supported for now.');
+      return;
+    }
+
+    // Create two promises:
+    // - one to get signer from wallet+password
+    // - one to get nonce
+    const signerPromise = Signer.fromJson(wallet, password);
+    const noncePromise =
+      !transaction.nonce || transaction.nonce.isZero()
+        ? api.parity.nextNonce(transaction.from)
+        : Promise.resolve(transaction.nonce);
+
+    return Promise.all([signerPromise, noncePromise])
+      .then(([signer, nonce]) => {
+        const txData = {
+          to: inHex(transaction.to),
+          nonce: inHex(transaction.nonce.isZero() ? nonce : transaction.nonce),
+          gasPrice: inHex(transaction.gasPrice),
+          gasLimit: inHex(transaction.gas),
+          value: inHex(transaction.value),
+          data: inHex(transaction.data)
+        };
+
+        return signer.signTransaction(txData);
+      })
+      .then(rawData => api.signer.confirmRequestRaw(request.id, rawData))
       .then(() => this.setState({ isSending: false }))
-      .catch(error => this.setState({ isSending: false, passwordError: error.text }));
+      .catch(error => {
+        this.setState({ isSending: false, error });
+      });
   };
 
   handleKeySelect = event => {
@@ -74,7 +103,7 @@ class ConfirmViaKey extends Component {
     if (event.target.files.length === 0) {
       return this.setState({
         wallet: null,
-        walletError: null
+        error: null
       });
     }
 
@@ -92,12 +121,12 @@ class ConfirmViaKey extends Component {
 
         this.setState({
           wallet,
-          walletError: null
+          error: null
         });
       } catch (error) {
         this.setState({
           wallet: null,
-          walletError: (
+          error: (
             <FormattedMessage
               id='signer.txPendingConfirm.errors.invalidWallet'
               defaultMessage='Given wallet file is invalid.'
@@ -113,8 +142,8 @@ class ConfirmViaKey extends Component {
   render () {
     const { address, isDisabled } = this.props;
 
-    const { isSending, wallet, walletError } = this.state;
-    const isWalletOk = walletError === null && wallet !== null;
+    const { isSending, wallet, error } = this.state;
+    const isWalletOk = error === null && wallet !== null;
 
     return (
       <div className={ styles.confirmForm }>
@@ -146,7 +175,7 @@ class ConfirmViaKey extends Component {
   }
 
   renderPassword () {
-    const { password, passwordError, wallet } = this.state;
+    const { password, error, wallet } = this.state;
 
     if (!wallet) {
       return null;
@@ -154,7 +183,7 @@ class ConfirmViaKey extends Component {
 
     return (
       <Input
-        error={ passwordError }
+        error={ !!error }
         hint={ <FormattedMessage id='signer.txPendingConfirm.password.decrypt.hint' defaultMessage='decrypt the key' /> }
         label={ <FormattedMessage id='signer.txPendingConfirm.password.decrypt.label' defaultMessage='Key Password' /> }
         onChange={ this.handleChange }
@@ -165,14 +194,9 @@ class ConfirmViaKey extends Component {
   }
 
   renderError () {
-    const { passwordError, walletError } = this.state;
+    const { error } = this.state;
 
-    return (
-      <div className={ styles.error }>
-        {walletError}
-        {passwordError}
-      </div>
-    );
+    return <div className={ styles.error }>{error}</div>;
   }
 
   renderHint () {
@@ -199,12 +223,12 @@ class ConfirmViaKey extends Component {
 
   renderKeyInput () {
     const { isFocused } = this.props;
-    const { walletError } = this.state;
+    const { error } = this.state;
 
     return (
       <Input
         className={ styles.fileInput }
-        error={ walletError }
+        error={ !!error }
         focused={ isFocused }
         hint={
           <FormattedMessage
