@@ -66,7 +66,7 @@ class ConfirmViaKey extends Component {
     return api.signer
       .confirmRequest(request.id, pick(transaction, ['condition', 'gas', 'gasPrice,']), password)
       .then(() => this.setState({ isSending: false }))
-      .catch(error => this.setState({ isSending: false, passwordError: <div>{error.text}</div> }));
+      .catch(error => this.setState({ isSending: false, passwordError: error.text }));
   };
 
   handleKeySelect = event => {
