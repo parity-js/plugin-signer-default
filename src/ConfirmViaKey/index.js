@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity.  If not, see <http://www.gnu.org/licenses/>.
 
-export default function isHandler () {
-  // Always handle all payloads
-  return true;
-}
+import ConfirmViaKey from './ConfirmViaKey';
+
+export default ConfirmViaKey;
