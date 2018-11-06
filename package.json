@@ -53,7 +53,7 @@
   "dependencies": {
     "@parity/ui": "^3.1.2",
     "lodash": "^4.17.5",
-    "react-intl": "^2.4.0",
+    "react-intl": "^2.7.2",
     "semantic-ui-react": "^0.83.0"
   },
   "peerDependencies": {
