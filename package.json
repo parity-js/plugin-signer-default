@@ -46,7 +46,7 @@
     "eslint-plugin-react": "^7.12.4",
     "eslint-plugin-standard": "^4.0.0",
     "prop-types": "^15.7.1",
-    "sinon": "^7.2.3",
+    "sinon": "^7.2.4",
     "stylelint": "^9.10.1",
     "stylelint-config-standard": "^18.2.0"
   },
