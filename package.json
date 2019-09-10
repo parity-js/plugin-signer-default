@@ -54,7 +54,7 @@
     "@parity/ui": "^3.1.29",
     "lodash": "^4.17.15",
     "react-intl": "^3.1.8",
-    "semantic-ui-react": "^0.88.0"
+    "semantic-ui-react": "^0.88.1"
   },
   "peerDependencies": {
     "mobx": "^3.5.1",
