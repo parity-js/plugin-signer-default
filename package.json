@@ -1,6 +1,6 @@
 {
   "name": "@parity/plugin-signer-default",
-  "version": "1.2.97",
+  "version": "1.2.98",
   "description": "Default Signer plugin handler",
   "main": "index.js",
   "scripts": {
