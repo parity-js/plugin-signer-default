@@ -52,7 +52,7 @@
   },
   "dependencies": {
     "@parity/ui": "^3.1.31",
-    "lodash": "^4.17.15",
+    "lodash": "^4.17.19",
     "react-intl": "^3.1.8",
     "semantic-ui-react": "^0.88.2"
   },
